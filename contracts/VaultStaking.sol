@@ -15,7 +15,7 @@ contract VaultStaking is Ownable, Pausable {
     uint256 public lastUpdated;
     uint256 public rps;
 
-    uint256 public constant CACULATE_PRECISION = 1e18;
+    uint256 public constant CALCULATE_PRECISION = 1e18;
     struct StakerInfo {
         uint256 balance;
         uint256 index;

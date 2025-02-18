@@ -12,7 +12,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await deploy("VaultStaking", {
         contract: "VaultStaking",
         from: deployer,
-        args: [ati, ati, rps],
+        args: [ati, ati, rps, deployer],
         skipIfAlreadyDeployed: true,
         log: true,
     });

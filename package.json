@@ -1,0 +1,20 @@
+{
+    "name": "hardhat-project",
+    "dependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+        "@nomicfoundation/hardhat-ethers": "^3.0.8",
+        "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
+        "@openzeppelin/contracts": "^5.2.0",
+        "@openzeppelin/contracts-upgradeable": "^5.2.0",
+        "@typechain/hardhat": "^9.1.0",
+        "@types/mocha": "^10.0.10",
+        "chai": "^4.3.4",
+        "dotenv": "^16.4.7",
+        "hardhat": "^2.22.18",
+        "hardhat-deploy": "^0.14.0",
+        "ts-node": "^10.9.2"
+    },
+    "devDependencies": {
+        "typescript": "^5.7.3"
+    }
+}

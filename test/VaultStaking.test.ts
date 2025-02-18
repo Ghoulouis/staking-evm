@@ -43,6 +43,20 @@ describe("Vault staking", function () {
         expect(stakerInfo.pendingReward).to.be.eq(ethers.parseEther("50"));
     });
 
+    it("should allow user to stake", async () => {
+        await expect(vault.connect(bob).stake(ethers.parseEther("100")))
+            .to.be.emit(vault, "Staked")
+            .withArgs(bob.address, ethers.parseEther("100"));
+        const totalStaked = await vault.totalStaked();
+        expect(totalStaked).to.be.eq(ethers.parseEther("100"));
+        await skipTime(2534);
+        const estimatedReward = await vault.viewReward(bob.address);
+        await vault.connect(bob).updateReward(bob.address);
+        const stakerInfo = await vault.stakers(bob.address);
+        expect(stakerInfo.pendingReward).to.be.approximately(estimatedReward, ethers.parseEther("1"));
+        // expect(stakerInfo.pendingReward).to.be.eq(ethers.parseEther("50"));
+    });
+
     it("should allow user to claim reward", async () => {
         await vault.connect(bob).stake(ethers.parseEther("100"));
         await skipTime(40);

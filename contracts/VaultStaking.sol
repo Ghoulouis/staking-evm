@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 contract VaultStaking is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
-    address public admin;
     address public tokenStaked;
     address public tokenRewards;
     uint256 public totalStaked;

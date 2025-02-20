@@ -156,7 +156,7 @@ describe("ERC20 staking", function () {
                 let newTime = Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60;
 
                 await vault.connect(owner).updateTimeUnlock(newTime);
-                await expect(await vault.timeUnlock()).to.be.eq(newTime);
+                expect(await vault.timeUnlock()).to.be.eq(newTime);
             });
         });
     });

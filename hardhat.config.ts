@@ -96,9 +96,15 @@ const config: HardhatUserConfig = {
             saveDeployments: true,
             deploy: ["deploy/eth_sepolia"],
         },
+        bsc_testnet: {
+            url: process.env.RPC_BSC_TESTNET,
+            accounts,
+            saveDeployments: true,
+            deploy: ["deploy/bsc_testnet"],
+        },
         folked_bera: {
             tags: ["forked-bera"],
-            url: "http://127.0.0.1:9001",
+            url: "http://127.0.0.1:9000",
             accounts: TEST_HDWALLET,
             live: false,
             chainId: 31337,

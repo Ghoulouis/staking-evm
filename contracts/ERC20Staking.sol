@@ -150,7 +150,7 @@ contract ERC20Staking is Ownable, Pausable {
         rps = _rps;
     }
 
-    function updateTimeUnlock(uint256 _timeUnlock) public onlyAdmin {
+    function updateTimeUnlock(uint256 _timeUnlock) public onlyOwner {
         timeUnlock = _timeUnlock;
     }
 

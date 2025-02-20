@@ -96,6 +96,14 @@ const config: HardhatUserConfig = {
             saveDeployments: true,
             deploy: ["deploy/eth_sepolia"],
         },
+        folked_bera: {
+            tags: ["forked-bera"],
+            url: "http://127.0.0.1:9001",
+            accounts: TEST_HDWALLET,
+            live: false,
+            chainId: 31337,
+            deploy: ["deploy/folked_bera"],
+        },
         bera: {
             url: process.env.RPC_BERA,
             accounts,

@@ -8,15 +8,16 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployer } = await getNamedAccounts();
 
     const ati = (await get("ATI")).address;
-    const rps = ethers.parseUnits("0", 18);
+    const rps = ethers.parseUnits("1", 18);
+    const timeUnlock = Math.round(Date.now() / 1000) + 60 * 15;
     await deploy("Vault_ATI", {
-        contract: "VaultStaking",
+        contract: "ERC20Staking",
         from: deployer,
-        args: [ati, ati, rps, deployer],
+        args: [ati, ati, rps, deployer, timeUnlock],
         skipIfAlreadyDeployed: true,
         log: true,
     });
 };
 
 export default deploy;
-deploy.tags = ["ATI", "folked-bera"];
+deploy.tags = ["ATIPool"];

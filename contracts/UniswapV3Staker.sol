@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "./libraries/NFTPositionInfo.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -29,6 +27,7 @@ contract UniswapV3Staker is ReentrancyGuard {
         int24 tickUpper;
         uint128 liquidity;
     }
+
     IUniswapV3Factory public immutable factory;
     INonfungiblePositionManager public immutable nonfungiblePositionManager;
     IUniswapV3Pool public immutable pool;
@@ -37,13 +36,36 @@ contract UniswapV3Staker is ReentrancyGuard {
     mapping(address => uint256) public rewards;
     // Incentive
     uint256 totalRewardUnclaimed;
+    uint256 totalRewandClaim;
     uint160 totalSecondsClaimedX128;
+
     uint256 public startTime;
     uint256 public endTime;
     // Error
     error WrongReceiver();
 
     // Events
+
+    constructor(
+        address _factory,
+        address _nonfungiblePositionManager,
+        address _tokenReward,
+        address _pool,
+        uint256 _timeStart,
+        uint256 _timeEnd,
+        uint256 _totalReward
+    ) {
+        factory = IUniswapV3Factory(_factory);
+        nonfungiblePositionManager = INonfungiblePositionManager(
+            _nonfungiblePositionManager
+        );
+        tokenReward = IERC20(_tokenReward);
+        pool = IUniswapV3Pool(_pool);
+        startTime = _timeStart;
+        endTime = _timeEnd;
+        totalRewardUnclaimed = _totalReward;
+    }
+
     function onERC721Received(
         address,
         address _from,
@@ -95,21 +117,57 @@ contract UniswapV3Staker is ReentrancyGuard {
             positionInfo.tickLower,
             positionInfo.tickUpper
         );
-        uint160 secondsInsideX128 = (indexTimeInsideNowX128 -
-            positionInfo.indexTimeInsideX128);
+
         // update reward
-        uint256 tickRange = uint256(
-            int256(positionInfo.tickUpper - positionInfo.tickLower)
+        (uint256 reward, uint160 secondsInsideX128) = _computeRewardAmount(
+            totalRewardUnclaimed,
+            totalSecondsClaimedX128,
+            startTime,
+            endTime,
+            positionInfo.liquidity,
+            positionInfo.indexTimeInsideX128,
+            indexTimeInsideNowX128,
+            block.timestamp
         );
-        uint256 reward = (secondsInsideX128 * positionInfo.liquidity) /
-            (tickRange + 1);
+
+        totalSecondsClaimedX128 += secondsInsideX128;
+        totalRewardUnclaimed -= reward;
         rewards[positionInfo.owner] += reward;
+        delete positionInfos[_tokenId];
         // transfer position
         nonfungiblePositionManager.safeTransferFrom(
             address(this),
             msg.sender,
             _tokenId
         );
-        delete positionInfos[_tokenId];
+    }
+
+    function _computeRewardAmount(
+        uint256 _totalRewardUnclaimed,
+        uint160 _totalSecondsClaimedX128,
+        uint256 _startTime,
+        uint256 _endTime,
+        uint128 _liquidity,
+        uint160 _secondsPerLiquidityInsideInitialX128,
+        uint160 _secondsPerLiquidityInsideX128,
+        uint256 _currentTime
+    ) internal pure returns (uint256 _reward, uint160 _secondsInsideX128) {
+        assert(_currentTime >= _startTime);
+
+        _secondsInsideX128 =
+            (_secondsPerLiquidityInsideX128 -
+                _secondsPerLiquidityInsideInitialX128) *
+            _liquidity;
+
+        uint256 _totalSecondsUnclaimedX128 = ((Math.min(
+            _endTime,
+            _currentTime
+        ) - _startTime) << 128) - _totalSecondsClaimedX128;
+
+        _reward = Math.mulDiv(
+            _totalRewardUnclaimed,
+            _secondsInsideX128,
+            _totalSecondsUnclaimedX128
+        );
     }
 }

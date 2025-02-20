@@ -1,5 +1,8 @@
 {
     "name": "hardhat-project",
+    "scripts": {
+        "folk-bera": "hardhat node --fork https://rpc.berachain.com/ --fork-block-number 1392700 --hostname 0.0.0.0 --port 9000 --port 9001 --tags folked-bera"
+    },
     "dependencies": {
         "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
         "@nomicfoundation/hardhat-ethers": "^3.0.8",

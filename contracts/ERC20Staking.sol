@@ -5,8 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract VaultStaking is Ownable, Pausable {
+contract ERC20Staking is Ownable, Pausable {
     using SafeERC20 for IERC20;
+
+    struct StakerInfo {
+        uint256 balance;
+        uint256 index;
+        uint256 pendingReward;
+    }
+
     address public admin;
     address public tokenStaked;
     address public tokenRewards;
@@ -14,15 +21,13 @@ contract VaultStaking is Ownable, Pausable {
     uint256 public globalIndex;
     uint256 public lastUpdated;
     uint256 public rps;
+    uint256 public totalStaker;
+    uint256 public timeUnlock;
 
     uint256 public constant CALCULATE_PRECISION = 1e18;
-    struct StakerInfo {
-        uint256 balance;
-        uint256 index;
-        uint256 pendingReward;
-    }
 
     mapping(address => StakerInfo) public stakers;
+    mapping(address => bool) public newStakers;
 
     event Staked(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount);
@@ -33,21 +38,29 @@ contract VaultStaking is Ownable, Pausable {
         _;
     }
 
+    modifier passLockingTime() {
+        require(block.timestamp >= timeUnlock, "still locking");
+        _;
+    }
+
     constructor(
         address _tokenRewards,
         address _tokenStaked,
         uint256 _rps,
-        address _admin
+        address _admin,
+        uint256 _timeUnlock
     ) Ownable(msg.sender) Pausable() {
         tokenRewards = _tokenRewards;
         tokenStaked = _tokenStaked;
         rps = _rps;
         admin = _admin;
+        timeUnlock = _timeUnlock;
     }
 
     function stake(uint256 amount) public whenNotPaused {
         updateGlobalIndex();
         updateReward(msg.sender);
+        _updateTotalStaker(msg.sender);
         _deposit(tokenStaked, amount);
         StakerInfo storage staker = stakers[msg.sender];
         staker.balance += amount;
@@ -55,8 +68,19 @@ contract VaultStaking is Ownable, Pausable {
         emit Staked(msg.sender, amount);
     }
 
-    function unstake(uint256 amount) public {
+    function unstake(uint256 amount) public passLockingTime {
         claimReward();
+        StakerInfo storage stakeData = stakers[msg.sender];
+        require(stakeData.balance >= amount, "not enough balance");
+        stakeData.balance -= amount;
+        _withdraw(tokenStaked, amount);
+        totalStaked -= amount;
+        emit Unstaked(msg.sender, amount);
+    }
+
+    function unstakeWithoutClaimReward(uint256 amount) public passLockingTime {
+        updateGlobalIndex();
+        updateReward(msg.sender);
         StakerInfo storage stakeData = stakers[msg.sender];
         require(stakeData.balance >= amount, "not enough balance");
         stakeData.balance -= amount;
@@ -86,7 +110,7 @@ contract VaultStaking is Ownable, Pausable {
         stakeData.index = globalIndex;
     }
 
-    function claimReward() public {
+    function claimReward() public passLockingTime {
         updateGlobalIndex();
         updateReward(msg.sender);
         StakerInfo storage stakeData = stakers[msg.sender];
@@ -121,9 +145,13 @@ contract VaultStaking is Ownable, Pausable {
         IERC20(token).safeTransfer(msg.sender, amount);
     }
 
-    function updateConfig(uint256 _rps) public onlyAdmin {
+    function updateRps(uint256 _rps) public onlyAdmin {
         updateGlobalIndex();
         rps = _rps;
+    }
+
+    function updateTimeUnlock(uint256 _timeUnlock) public onlyAdmin {
+        timeUnlock = _timeUnlock;
     }
 
     function updateAdmin(address _admin) public onlyOwner {
@@ -132,6 +160,17 @@ contract VaultStaking is Ownable, Pausable {
 
     function withdraw(address token, uint256 amount) public onlyOwner {
         _withdraw(token, amount);
+        require(
+            IERC20(tokenStaked).balanceOf(address(this)) >= totalStaked,
+            "not enough balance staked"
+        );
+    }
+
+    function _updateTotalStaker(address account) internal {
+        if (!newStakers[account]) {
+            newStakers[account] = true;
+            totalStaker += 1;
+        }
     }
 
     function pause() public onlyOwner {

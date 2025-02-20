@@ -16,8 +16,19 @@ const TEST_HDWALLET = {
     passphrase: "",
 };
 
-const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY!] : TEST_HDWALLET;
+const accounts = process.env.PRIVATE_KEY_SEPOLIA
+    ? [process.env.PRIVATE_KEY_SEPOLIA!, process.env.PRIVATE_KEY_BERA!]
+    : TEST_HDWALLET;
 
+const UNISWAP_SETTING = {
+    version: "0.7.6",
+    settings: {
+        optimizer: {
+            enabled: true,
+            runs: 2_000,
+        },
+    },
+};
 const config: HardhatUserConfig = {
     paths: {
         artifacts: "artifacts",
@@ -27,7 +38,10 @@ const config: HardhatUserConfig = {
         tests: "test",
     },
     namedAccounts: {
-        deployer: 0,
+        deployer: {
+            default: 0,
+            80094: 1,
+        },
         smartAccountOwner: 1,
         alice: 2,
         charlie: 3,
@@ -48,7 +62,25 @@ const config: HardhatUserConfig = {
                     },
                 },
             },
+            {
+                version: "0.7.0",
+            },
+            {
+                version: "0.7.5",
+            },
+            {
+                version: "0.7.6",
+            },
+            {
+                version: "0.8.0",
+            },
+            UNISWAP_SETTING,
         ],
+        overrides: {
+            "@uniswap/v3-core/contracts/libraries/FullMath.sol": UNISWAP_SETTING,
+            "@uniswap/v3-core/contracts/libraries/TickMath.sol": UNISWAP_SETTING,
+            "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol": UNISWAP_SETTING,
+        },
     },
     defaultNetwork: "hardhat",
     networks: {
@@ -63,6 +95,12 @@ const config: HardhatUserConfig = {
             accounts,
             saveDeployments: true,
             deploy: ["deploy/eth_sepolia"],
+        },
+        bera: {
+            url: process.env.RPC_BERA,
+            accounts,
+            saveDeployments: true,
+            deploy: ["deploy/bera"],
         },
     },
 };

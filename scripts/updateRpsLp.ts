@@ -47,26 +47,36 @@ async function data() {
     console.log(`Token1 Amount: ${ethers.formatEther(amount1.toFixed(0))}`);
     let numberATI = BigNumber(ethers.formatEther(amount0.toFixed(0)));
     let numberHOLD = BigNumber(ethers.formatEther(amount1.toFixed(0)));
-    let priceATI = BigNumber(0.000135);
-    let priceHOLD = BigNumber(1.3943);
+    let priceATI = BigNumber(0.000126);
+    let priceHOLD = BigNumber(1.43083);
     let totalValue = numberATI.times(priceATI).plus(numberHOLD.times(priceHOLD));
     let apy = BigNumber(0.5);
     let rewardPerDay = totalValue.times(apy).div(365);
     let rps = rewardPerDay.div(24).div(60).div(60);
     let atiPs = rps.div(priceATI).toFixed(17);
 
-    const rpsOffChain = ethers.parseEther(rps.toFixed(17));
     console.log(`Reward per second: ${atiPs} ATI`);
+    const rpsOffChain = ethers.parseEther(atiPs);
     const rpsOnChain = await vault.rps();
+    console.log(`Reward per second on chain: ${ethers.formatUnits(rpsOnChain)}`);
+
+    const caller = await hre.ethers.getSigner(deployer);
+    let txRespone, txReceipt;
+    if (
+        Math.abs(Number(ethers.formatEther(rpsOffChain)) - Number(ethers.formatEther(rpsOnChain))) >
+        Number(ethers.formatEther(rpsOffChain)) / 100
+    ) {
+        console.log(`Update RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
+        txRespone = await vault.connect(caller).updateRps(ethers.parseEther(atiPs));
+        txReceipt = await txRespone.wait();
+    }
+
+    // const timeUnlock = Math.round(new Date("2025-06-22T03:00:00Z").getTime() / 1000);
+    // txRespone = await vault.connect(caller).updateTimeUnlock(timeUnlock);
+    // txReceipt = await txRespone.wait();
 
     const reward = await vault.viewReward(deployer);
     console.log(`Reward: ${ethers.formatUnits(reward)}`);
-
-    if (rpsOffChain - rpsOnChain > rpsOffChain / 100n) {
-        const caller = await hre.ethers.getSigner(deployer);
-        console.log(`Update RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
-        await vault.connect(caller).updateRps(ethers.parseEther(atiPs));
-    }
 }
 
 data();

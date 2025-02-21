@@ -8,7 +8,10 @@ import "./interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract UniswapV3LPStaking is PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract UniswapV3LPStakingUpgradeable is
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
 
     enum statusNFT {
@@ -194,12 +197,10 @@ contract UniswapV3LPStaking is PausableUpgradeable, ReentrancyGuardUpgradeable {
     function updateGlobalIndex() public {
         uint256 currentTime = block.timestamp;
         uint256 timePassed = currentTime - lastUpdated;
-
         if (totalStaked > 0 && timePassed > 0) {
             uint256 pendingReward = rps * timePassed;
             globalIndex += (pendingReward * CALCULATE_PRECISION) / totalStaked;
         }
-
         lastUpdated = currentTime;
     }
 

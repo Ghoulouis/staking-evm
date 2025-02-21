@@ -16,54 +16,57 @@ function getAmountsForLiquidity(
     let amount0 = new BigNumber(0);
     let amount1 = new BigNumber(0);
 
-    if (sqrtPriceX96.lt(sqrtPriceLowerX96)) {
-        // Toàn bộ giá trị ở token0
-        amount0 = liquidity
-            .times(sqrtPriceUpperX96.minus(sqrtPriceLowerX96))
-            .div(sqrtPriceLowerX96)
-            .div(sqrtPriceUpperX96);
-    } else if (sqrtPriceX96.lt(sqrtPriceUpperX96)) {
-        // LP chứa cả token0 và token1
-        amount0 = liquidity.times(sqrtPriceUpperX96.minus(sqrtPriceX96)).div(sqrtPriceX96).div(sqrtPriceUpperX96);
-        amount1 = liquidity.times(sqrtPriceX96.minus(sqrtPriceLowerX96)).div(new BigNumber(2).pow(96));
-    } else {
-        // Toàn bộ giá trị ở token1
-        amount1 = liquidity.times(sqrtPriceUpperX96.minus(sqrtPriceLowerX96)).div(new BigNumber(2).pow(96));
-    }
+    let sqrtPriceUpper = sqrtPriceUpperX96.div(new BigNumber(2).pow(96));
+    let sqrtPrice = sqrtPriceX96.div(new BigNumber(2).pow(96));
+    amount0 = liquidity.times(sqrtPriceUpper.minus(sqrtPrice)).div(sqrtPriceUpper.times(sqrtPrice));
+    amount1 = liquidity.times(sqrtPriceX96.minus(sqrtPriceLowerX96)).div(new BigNumber(2).pow(96));
     return { amount0, amount1 };
 }
-
 async function data() {
     const { deployments, getNamedAccounts } = hre;
     const { deployer } = await getNamedAccounts();
-
     const vault = UniswapV3LPStaking__factory.connect(
         (await deployments.get("Vault_LP_ATI-HOLD")).address,
         hre.ethers.provider
     );
-
     console.log("Vault Address:", await vault.getAddress());
-
     // Lấy thông tin về tick và liquidity
-    let tickLower = await vault.tickLower();
-    let tickUpper = await vault.tickUpper();
+    let tickLower = -887272;
+    let tickUpper = 887271;
     let liquidity = new BigNumber((await vault.totalStaked()).toString());
-
     // Kết nối Uniswap V3 Pool
     const pool = IUniswapV3Pool__factory.connect("0x719f061FcC15eBEa2f045Def463594cFb7d8f69a", hre.ethers.provider);
-
     let slot0 = await pool.slot0();
     let sqrtPriceX96 = new BigNumber(slot0.sqrtPriceX96.toString());
-
     // Chuyển đổi tick thành sqrtPriceX96
     let sqrtPriceLowerX96 = getSqrtRatioAtTick(Number(tickLower));
     let sqrtPriceUpperX96 = getSqrtRatioAtTick(Number(tickUpper));
-
     // Tính số lượng token0 và token1
     let { amount0, amount1 } = getAmountsForLiquidity(liquidity, sqrtPriceX96, sqrtPriceLowerX96, sqrtPriceUpperX96);
+    console.log(`Token0 Amount: ${ethers.formatEther(amount0.toFixed(0))}`);
+    console.log(`Token1 Amount: ${ethers.formatEther(amount1.toFixed(0))}`);
+    let numberATI = BigNumber(ethers.formatEther(amount0.toFixed(0)));
+    let numberHOLD = BigNumber(ethers.formatEther(amount1.toFixed(0)));
+    let priceATI = BigNumber(0.000135);
+    let priceHOLD = BigNumber(1.3943);
+    let totalValue = numberATI.times(priceATI).plus(numberHOLD.times(priceHOLD));
+    let apy = BigNumber(0.5);
+    let rewardPerDay = totalValue.times(apy).div(365);
+    let rps = rewardPerDay.div(24).div(60).div(60);
+    let atiPs = rps.div(priceATI).toFixed(17);
 
-    console.log(`Token0 Amount: ${amount0.toString()}`);
-    console.log(`Token1 Amount: ${amount1.toString()}`);
+    const rpsOffChain = ethers.parseEther(rps.toFixed(17));
+    console.log(`Reward per second: ${atiPs} ATI`);
+    const rpsOnChain = await vault.rps();
+
+    const reward = await vault.viewReward(deployer);
+    console.log(`Reward: ${ethers.formatUnits(reward)}`);
+
+    if (rpsOffChain - rpsOnChain > rpsOffChain / 100n) {
+        const caller = await hre.ethers.getSigner(deployer);
+        console.log(`Update RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
+        await vault.connect(caller).updateRps(ethers.parseEther(atiPs));
+    }
 }
 
 data();

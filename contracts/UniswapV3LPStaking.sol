@@ -15,6 +15,7 @@ contract UniswapV3LPStaking is Ownable, Pausable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     enum statusNFT {
+        NOT_ENTERED,
         STAKING,
         UNSTAKED
     }
@@ -148,7 +149,7 @@ contract UniswapV3LPStaking is Ownable, Pausable, ReentrancyGuardUpgradeable {
         StakerInfo storage staker = stakers[_from];
         staker.balance += cache.liquidity;
         totalStaked += cache.liquidity;
-        _updateTotalStaker(_from, staker.index);
+        _updateTotalStaker(_from, _tokenId);
         emit Staked(_from, _tokenId, cache.liquidity);
         return this.onERC721Received.selector;
     }

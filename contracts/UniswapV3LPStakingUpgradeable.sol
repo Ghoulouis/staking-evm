@@ -169,6 +169,7 @@ contract UniswapV3LPStakingUpgradeable is
         require(nft.owner == msg.sender, "Not NFT owner");
         updateGlobalIndex();
         updateReward(msg.sender);
+        nft.status = statusNFT.UNSTAKED;
         positionManager.safeTransferFrom(address(this), msg.sender, tokenId);
         staker.balance -= nft.liquidity;
         totalStaked -= nft.liquidity;

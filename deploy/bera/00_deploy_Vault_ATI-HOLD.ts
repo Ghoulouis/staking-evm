@@ -52,4 +52,4 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 export default deploy;
-deploy.tags = ["ATI", "folked-bera"];
+deploy.tags = ["ATI-HOLD", "folked-bera"];

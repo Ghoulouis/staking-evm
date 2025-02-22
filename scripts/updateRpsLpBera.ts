@@ -31,11 +31,11 @@ async function data() {
     );
     console.log("Vault Address:", await vault.getAddress());
     // Lấy thông tin về tick và liquidity
-    let tickLower = -887272;
-    let tickUpper = 887271;
+    let tickLower = -887220;
+    let tickUpper = 887220;
     let liquidity = new BigNumber((await vault.totalStaked()).toString());
     // Kết nối Uniswap V3 Pool
-    let pool = IUniswapV3Pool__factory.connect("0x719f061FcC15eBEa2f045Def463594cFb7d8f69a", hre.ethers.provider);
+    let pool = IUniswapV3Pool__factory.connect("0x9aef6241c191fed841ca45120cefd582ca8fd0d9", hre.ethers.provider);
 
     let slot0 = await pool.slot0();
     let sqrtPriceX96 = new BigNumber(slot0.sqrtPriceX96.toString());
@@ -48,48 +48,39 @@ async function data() {
     console.log(`Token1 Amount: ${ethers.formatEther(amount1.toFixed(0))}`);
     let numberATI = BigNumber(ethers.formatEther(amount0.toFixed(0)));
     let numberHOLD = BigNumber(ethers.formatEther(amount1.toFixed(0)));
-    let priceATI = BigNumber(2);
-    let priceHOLD = BigNumber(1);
+    // let priceATI = BigNumber(0.000126);
+    // let priceHOLD = BigNumber(1.43083);
+    // let totalValue = numberATI.times(priceATI).plus(numberHOLD.times(priceHOLD));
 
-    let totalValue = numberATI.times(priceATI).plus(numberHOLD.times(priceHOLD));
-    let apy = BigNumber(0.5);
-    let rewardPerDay = totalValue.times(apy).div(365);
-    let rps = rewardPerDay.div(24).div(60).div(60);
-    let atiPs = rps.div(priceATI).toFixed(17);
-
-    console.log(`Reward per second: ${atiPs} ATI`);
-    const rpsOffChain = ethers.parseEther(atiPs);
-    const rpsOnChain = await vault.rps();
+    // let rewardPerDay = totalValue.times(apy).div(365);
+    // let rps = rewardPerDay.div(24).div(60).div(60);
+    // let atiPs = rps.div(priceATI).toFixed(17);
 
     let priceRatio = sqrtPriceX96.div(new BigNumber(2).pow(96)).pow(2);
-
+    let apy = BigNumber(0.5);
     console.log(`Price Ratio: ${priceRatio}`);
     let totalValueInToken0 = numberATI.plus(numberHOLD.div(priceRatio));
     let rewardPerDay2 = totalValueInToken0.times(apy).div(365);
     let rps2 = rewardPerDay2.div(24).div(60).div(60);
     let atiPs2 = rps2.toFixed(17);
 
+    console.log(`Reward per second: ${atiPs2} ATI`);
+    const rpsOffChain = ethers.parseEther(atiPs2);
+    const rpsOnChain = await vault.rps();
     console.log(`Reward per second on chain: ${ethers.formatUnits(rpsOnChain)}`);
-    console.log(`Reward per second off chain: ${atiPs}`);
-    console.log(`Reward per second on chain 2: ${atiPs2}`);
-    return;
-
+    console.log(`Update RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
     const caller = await hre.ethers.getSigner(deployer);
     let txRespone, txReceipt;
     if (
         Math.abs(Number(ethers.formatEther(rpsOffChain)) - Number(ethers.formatEther(rpsOnChain))) >
-        Number(ethers.formatEther(rpsOffChain)) / 100
+        Number(ethers.formatEther(rpsOffChain)) / 50
     ) {
-        console.log(`Update RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
-        txRespone = await vault.connect(caller).updateRps(ethers.parseEther(atiPs));
+        console.log(`Updateeee RPS from ${ethers.formatUnits(rpsOnChain)} to ${ethers.formatUnits(rpsOffChain)}`);
+        txRespone = await vault.connect(caller).updateRps(ethers.parseEther(atiPs2));
         txReceipt = await txRespone.wait();
     }
 
-    // const timeUnlock = Math.round(new Date("2025-06-22T03:00:00Z").getTime() / 1000);
-    // txRespone = await vault.connect(caller).updateTimeUnlock(timeUnlock);
-    // txReceipt = await txRespone.wait();
-
-    const reward = await vault.viewReward(deployer);
+    const reward = await vault.viewReward("0x690DC38a26ab11A6CA1D0B8c27070AD9828B6D69");
     console.log(`Reward: ${ethers.formatUnits(reward)}`);
 }
 

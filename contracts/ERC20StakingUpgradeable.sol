@@ -72,6 +72,7 @@ contract ERC20StakingUpgradeable is PausableUpgradeable {
         StakerInfo storage staker = stakers[msg.sender];
         staker.balance += amount;
         totalStaked += amount;
+        _updateRps();
         emit Staked(msg.sender, amount);
     }
 
@@ -82,6 +83,7 @@ contract ERC20StakingUpgradeable is PausableUpgradeable {
         stakeData.balance -= amount;
         _withdraw(tokenStaked, amount);
         totalStaked -= amount;
+        _updateRps();
         emit Unstaked(msg.sender, amount);
     }
 
@@ -193,5 +195,13 @@ contract ERC20StakingUpgradeable is PausableUpgradeable {
 
     function unpause() public onlyAdmin {
         _unpause();
+    }
+
+    function _updateRps() internal {
+        updateGlobalIndex();
+        rps = totalStaked / 5 / 365 days;
+        if (block.timestamp > timeUnlock) {
+            rps = 0;
+        }
     }
 }
